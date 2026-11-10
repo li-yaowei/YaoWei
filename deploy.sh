@@ -29,10 +29,17 @@ build() {
 }
 
 setup_gh() {
-  if [[ -z $(git branch -av | grep "$PAGES_BRANCH") ]]; then
-    git checkout -b "$PAGES_BRANCH"
+  # actions/checkout@v4 only fetches the triggering branch by default, so we
+  # must explicitly pull the existing gh-pages branch from origin to preserve
+  # files that only live there (e.g. CNAME for GitHub Pages custom domains).
+  if git ls-remote --exit-code --heads origin "$PAGES_BRANCH" >/dev/null 2>&1; then
+    git fetch origin "$PAGES_BRANCH":"$PAGES_BRANCH"
+    # build() refreshes tracked cache files (.linkyee-cache/*.json); force the
+    # checkout so those throwaway modifications don't block the switch. flush()
+    # wipes everything except _output/, .git, and CNAME anyway.
+    git checkout -f "$PAGES_BRANCH"
   else
-    git checkout "$PAGES_BRANCH"
+    git checkout -b "$PAGES_BRANCH"
   fi
 }
 
